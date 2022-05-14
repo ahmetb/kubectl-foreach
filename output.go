@@ -19,39 +19,40 @@ func (s *synchronizedWriter) Write(p []byte) (int, error) {
 
 type prefixingWriter struct {
 	prefix []byte
-	first  bool
-	w      io.Writer
+	w      io.Writer // has per-Write mutex
+
+	buf bytes.Buffer
 }
 
 func (s *prefixingWriter) Write(p []byte) (int, error) {
-	if !s.first {
-		s.first = !s.first
-		if _, err := s.w.Write(s.prefix); err != nil {
-			return 0, err
-		}
-	}
-	n := 0
+	n := len(p)
 	for {
+		if s.buf.Len() == 0 {
+			s.buf.Write(s.prefix)
+		}
+
 		i := bytes.IndexByte(p, '\n')
-		if i == -1 || len(p)-1 == i {
-			if len(p)-1 == i {
-				s.first = !s.first
-			}
-			nn, err := s.w.Write(p)
-			n += nn
+		if i == -1 {
+			_, err := s.buf.Write(p)
 			if err != nil {
-				return n, err
+				return 0, err
 			}
 			break
 		}
 
-		nn, err := s.w.Write(p[:i+1])
-		n += nn
-		if err != nil {
-			return n, err
-		}
-		if _, err := s.w.Write(s.prefix); err != nil {
+		// found \n
+		if _, err := s.buf.Write(p[:i+1]); err != nil {
 			return 0, err
+		}
+
+		_, err := s.w.Write(s.buf.Bytes())
+		if err != nil {
+			return 0, err
+		}
+		s.buf.Reset()
+
+		if i == len(p)-1 {
+			break
 		}
 		p = p[i+1:]
 	}

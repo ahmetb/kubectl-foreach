@@ -136,7 +136,6 @@ func contexts() ([]string, error) {
 }
 
 func runAll(ctxs []string, args []string, stdout, stderr io.Writer) error {
-	ctxs = append(append(ctxs, ctxs...), ctxs...)
 
 	var wg errgroup.Group
 
