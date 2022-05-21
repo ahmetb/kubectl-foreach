@@ -24,6 +24,8 @@ const (
 var (
 	gray = color.New(color.FgHiBlack)
 	red  = color.New(color.FgRed)
+
+	repl = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 )
 
 func logErr(msg string) {
@@ -84,7 +86,8 @@ func main() {
 	}
 
 	if len(outCtx) == 0 {
-		red.Fprintf(os.Stderr, "query matched no contexts from kubeconfig")
+		red.Fprintln(os.Stderr, "query matched no contexts from kubeconfig")
+		os.Exit(1)
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
@@ -102,9 +105,22 @@ func main() {
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
 
-	err = runAll(outCtx, args, syncOut, syncErr)
+	err = runAll(outCtx, replaceArgs(args, *repl), syncOut, syncErr)
 	if err != nil {
 		logErr(err.Error())
+	}
+}
+
+func replaceArgs(args []string, repl string) func(ctx string) []string {
+	return func(ctx string) []string {
+		if repl == "" {
+			return append([]string{"--context=" + ctx}, args...)
+		}
+		out := make([]string, len(args))
+		for i := range args {
+			out[i] = strings.Replace(args[i], repl, ctx, -1)
+		}
+		return out
 	}
 }
 
@@ -135,7 +151,7 @@ func contexts() ([]string, error) {
 	return strings.Split(b.String(), "\n"), nil
 }
 
-func runAll(ctxs []string, args []string, stdout, stderr io.Writer) error {
+func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
 
 	var wg errgroup.Group
 
@@ -150,7 +166,6 @@ func runAll(ctxs []string, args []string, stdout, stderr io.Writer) error {
 		color.GreenString,
 		color.MagentaString,
 		color.YellowString,
-		color.HiWhiteString,
 		color.HiBlackString,
 		color.HiRedString,
 		color.HiCyanString,
@@ -166,7 +181,7 @@ func runAll(ctxs []string, args []string, stdout, stderr io.Writer) error {
 			prefix := []byte(colFn(leftPad(ctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
-			return run(ctx, args, wo, we)
+			return run(ctx, argMaker(ctx), wo, we)
 		})
 	}
 	return wg.Wait()
@@ -183,7 +198,7 @@ func maxLen(s []string) int {
 }
 
 func run(ctx string, args []string, stdout, stderr io.Writer) (err error) {
-	cmd := exec.Command("kubectl", append([]string{"--context=" + ctx}, args...)...)
+	cmd := exec.Command("kubectl", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	return cmd.Run()
