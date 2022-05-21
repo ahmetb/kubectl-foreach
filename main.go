@@ -186,17 +186,18 @@ func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Wri
 		// foreground only
 		chalk.WithRed().Sprintf,
 		chalk.WithBlue().Sprintf,
-		chalk.WithCyan().Sprintf,
 		chalk.WithGreen().Sprintf,
-		chalk.WithMagenta().Sprintf,
 		chalk.WithYellow().WithBgBlack().Sprintf,
+		chalk.WithGray().Sprintf,
+		chalk.WithMagenta().Sprintf,
+		chalk.WithCyan().Sprintf,
 		chalk.WithBrightRed().Sprintf,
+
 		chalk.WithBrightBlue().Sprintf,
-		chalk.WithBrightCyan().Sprintf,
 		chalk.WithBrightGreen().Sprintf,
 		chalk.WithBrightMagenta().Sprintf,
 		chalk.WithBrightYellow().WithBgBlack().Sprintf,
-		chalk.WithGray().Sprintf,
+		chalk.WithBrightCyan().Sprintf,
 
 		// inverse
 		chalk.WithBgRed().WithWhite().Sprintf,
@@ -216,10 +217,8 @@ func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Wri
 		// mixes+inverses
 		chalk.WithBgRed().WithYellow().Sprintf,
 		chalk.WithBgYellow().WithRed().Sprintf,
-
 		chalk.WithBgBlue().WithYellow().Sprintf,
 		chalk.WithBgYellow().WithBlue().Sprintf,
-
 		chalk.WithBgBlack().WithBrightWhite().Sprintf,
 		chalk.WithBgBrightWhite().WithBlack().Sprintf,
 	}
