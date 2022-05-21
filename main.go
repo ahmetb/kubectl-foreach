@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/jwalton/gchalk"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -22,14 +22,15 @@ const (
 )
 
 var (
-	gray = color.New(color.FgHiBlack)
-	red  = color.New(color.FgRed)
+	chalk = gchalk.Stderr
+	gray  = chalk.Gray
+	red   = chalk.Red
 
 	repl = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 )
 
 func logErr(msg string) {
-	red.Fprintf(os.Stderr, "error: ")
+	fmt.Fprintf(os.Stderr, red("error: "))
 	fmt.Fprintf(os.Stderr, "%v\n", msg)
 	os.Exit(1)
 }
@@ -86,19 +87,17 @@ func main() {
 	}
 
 	if len(outCtx) == 0 {
-		red.Fprintln(os.Stderr, "query matched no contexts from kubeconfig")
-		os.Exit(1)
+		logErr("query matched no contexts from kubeconfig")
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
 		fmt.Fprintln(os.Stderr, "Will run command in contexts:")
 		for _, c := range outCtx {
-			gray.Fprintf(os.Stderr, "  - %s\n", c)
+			fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
 		}
 		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
 		if err := prompt(os.Stdin); err != nil {
-			red.Fprintf(os.Stderr, "error: ")
-			log.Fatal(err)
+			logErr(err.Error())
 		}
 	}
 
@@ -148,7 +147,7 @@ func contexts() ([]string, error) {
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to get contexts: %w", err)
 	}
-	return strings.Split(b.String(), "\n"), nil
+	return strings.Split(strings.TrimSpace(b.String()), "\n"), nil
 }
 
 func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
@@ -156,29 +155,57 @@ func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Wri
 	var wg errgroup.Group
 
 	maxLen := maxLen(ctxs)
-	leftPad := func(s string) string {
-		return strings.Repeat(" ", maxLen-len(s)) + s
+	leftPad := func(s string, origLen int) string {
+		return strings.Repeat(" ", maxLen-origLen) + s
 	}
 
 	colors := []func(string, ...interface{}) string{
-		color.RedString,
-		color.CyanString,
-		color.GreenString,
-		color.MagentaString,
-		color.YellowString,
-		color.HiBlackString,
-		color.HiRedString,
-		color.HiCyanString,
-		color.HiGreenString,
-		color.HiMagentaString,
-		color.HiYellowString,
+		// foreground only
+		chalk.WithRed().Sprintf,
+		chalk.WithBlue().Sprintf,
+		chalk.WithCyan().Sprintf,
+		chalk.WithGreen().Sprintf,
+		chalk.WithMagenta().Sprintf,
+		chalk.WithYellow().WithBgBlack().Sprintf,
+		chalk.WithBrightRed().Sprintf,
+		chalk.WithBrightBlue().Sprintf,
+		chalk.WithBrightCyan().Sprintf,
+		chalk.WithBrightGreen().Sprintf,
+		chalk.WithBrightMagenta().Sprintf,
+		chalk.WithBrightYellow().WithBgBlack().Sprintf,
+		chalk.WithGray().Sprintf,
+
+		// inverse
+		chalk.WithBgRed().WithWhite().Sprintf,
+		chalk.WithBgBlue().WithWhite().Sprintf,
+		chalk.WithBgCyan().WithBlack().Sprintf,
+		chalk.WithBgGreen().WithBlack().Sprintf,
+		chalk.WithBgMagenta().WithBrightWhite().Sprintf,
+		chalk.WithBgYellow().WithBlack().Sprintf,
+		chalk.WithBgGray().WithWhite().Sprintf,
+		chalk.WithBgBrightRed().WithWhite().Sprintf,
+		chalk.WithBgBrightBlue().WithWhite().Sprintf,
+		chalk.WithBgBrightCyan().WithBlack().Sprintf,
+		chalk.WithBgBrightGreen().WithBlack().Sprintf,
+		chalk.WithBgBrightMagenta().WithBlack().Sprintf,
+		chalk.WithBgBrightYellow().WithBlack().Sprintf,
+
+		// mixes+inverses
+		chalk.WithBgRed().WithYellow().Sprintf,
+		chalk.WithBgYellow().WithRed().Sprintf,
+
+		chalk.WithBgBlue().WithYellow().Sprintf,
+		chalk.WithBgYellow().WithBlue().Sprintf,
+
+		chalk.WithBgBlack().WithBrightWhite().Sprintf,
+		chalk.WithBgBrightWhite().WithBlack().Sprintf,
 	}
 
 	for i, ctx := range ctxs {
 		ctx := ctx
 		colFn := colors[i%len(colors)]
 		wg.Go(func() error {
-			prefix := []byte(colFn(leftPad(ctx)) + " | ")
+			prefix := []byte(leftPad(colFn(ctx), len(ctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
 			return run(ctx, argMaker(ctx), wo, we)
