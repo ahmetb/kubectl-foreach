@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,8 +14,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/fatih/semgroup"
 	"github.com/jwalton/gchalk"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -26,7 +27,8 @@ var (
 	gray  = chalk.Gray
 	red   = chalk.Red
 
-	repl = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
+	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
+	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
 )
 
 func logErr(msg string) {
@@ -39,6 +41,9 @@ func main() {
 	log.SetOutput(os.Stderr)
 	log.SetFlags(0)
 	flag.Parse()
+	if *workers < 0 {
+		logErr("-c < 0")
+	}
 
 	var filters []filter
 	var args []string
@@ -151,8 +156,12 @@ func contexts() ([]string, error) {
 }
 
 func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
+	n := len(ctxs)
+	if *workers > 0 {
+		n = *workers
+	}
 
-	var wg errgroup.Group
+	wg := semgroup.NewGroup(context.TODO(), int64(n))
 
 	maxLen := maxLen(ctxs)
 	leftPad := func(s string, origLen int) string {

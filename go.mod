@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/fatih/semgroup v1.2.0 // indirect
 	github.com/jwalton/gchalk v1.3.0 // indirect
 	github.com/jwalton/go-supportscolor v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
