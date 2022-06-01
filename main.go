@@ -28,8 +28,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fatih/semgroup"
 	"github.com/jwalton/gchalk"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -169,15 +169,16 @@ func contexts() ([]string, error) {
 	return strings.Split(strings.TrimSpace(b.String()), "\n"), nil
 }
 
-func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
-	n := len(ctxs)
+func runAll(kubeCtxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
+	n := len(kubeCtxs)
 	if *workers > 0 {
 		n = *workers
 	}
 
-	wg := semgroup.NewGroup(context.TODO(), int64(n))
+	wg, _ := errgroup.WithContext(context.TODO())
+	wg.SetLimit(n)
 
-	maxLen := maxLen(ctxs)
+	maxLen := maxLen(kubeCtxs)
 	leftPad := func(s string, origLen int) string {
 		return strings.Repeat(" ", maxLen-origLen) + s
 	}
@@ -223,14 +224,14 @@ func runAll(ctxs []string, argMaker func(string) []string, stdout, stderr io.Wri
 		chalk.WithBgBrightWhite().WithBlack().Sprintf,
 	}
 
-	for i, ctx := range ctxs {
-		ctx := ctx
+	for i, kctx := range kubeCtxs {
+		kctx := kctx
 		colFn := colors[i%len(colors)]
 		wg.Go(func() error {
-			prefix := []byte(leftPad(colFn(ctx), len(ctx)) + " | ")
+			prefix := []byte(leftPad(colFn(kctx), len(kctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
-			return run(ctx, argMaker(ctx), wo, we)
+			return run(kctx, argMaker(kctx), wo, we)
 		})
 	}
 	return wg.Wait()
