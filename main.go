@@ -231,7 +231,7 @@ func runAll(kubeCtxs []string, argMaker func(string) []string, stdout, stderr io
 			prefix := []byte(leftPad(colFn(kctx), len(kctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
-			return run(kctx, argMaker(kctx), wo, we)
+			return run(argMaker(kctx), wo, we)
 		})
 	}
 	return wg.Wait()
@@ -247,7 +247,7 @@ func maxLen(s []string) int {
 	return max
 }
 
-func run(ctx string, args []string, stdout, stderr io.Writer) (err error) {
+func run(args []string, stdout, stderr io.Writer) (err error) {
 	cmd := exec.Command("kubectl", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
