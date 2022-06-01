@@ -25,6 +25,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"regexp"
 	"strings"
 
@@ -52,6 +53,13 @@ func logErr(msg string) {
 }
 
 func main() {
+	ctx := context.Background()
+	ctx, _ = signal.NotifyContext(ctx, os.Interrupt)
+	go func() {
+		<-ctx.Done()
+		fmt.Fprintln(os.Stderr, gray("received exit signal"))
+	}()
+
 	log.SetOutput(os.Stderr)
 	log.SetFlags(0)
 	flag.Parse()
@@ -91,7 +99,7 @@ func main() {
 	}
 	args = args[1:]
 
-	ctxs, err := contexts()
+	ctxs, err := kubeContexts(ctx)
 	if err != nil {
 		logErr(err.Error())
 	}
@@ -123,7 +131,7 @@ func main() {
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
 
-	err = runAll(outCtx, replaceArgs(args, *repl), syncOut, syncErr)
+	err = runAll(ctx, outCtx, replaceArgs(args, *repl), syncOut, syncErr)
 	if err != nil {
 		logErr(err.Error())
 	}
@@ -158,8 +166,8 @@ func (p pattern) match(in string) bool {
 	return p.MatchString(in)
 }
 
-func contexts() ([]string, error) {
-	cmd := exec.Command("kubectl", "config", "get-contexts", "-o=name")
+func kubeContexts(ctx context.Context) ([]string, error) {
+	cmd := exec.CommandContext(ctx, "kubectl", "config", "get-contexts", "-o=name")
 	var b bytes.Buffer
 	cmd.Stdout = &b
 	cmd.Stderr = os.Stderr // TODO might be redundant
@@ -169,13 +177,13 @@ func contexts() ([]string, error) {
 	return strings.Split(strings.TrimSpace(b.String()), "\n"), nil
 }
 
-func runAll(kubeCtxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
+func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
 	n := len(kubeCtxs)
 	if *workers > 0 {
 		n = *workers
 	}
 
-	wg, _ := errgroup.WithContext(context.TODO())
+	wg, _ := errgroup.WithContext(ctx)
 	wg.SetLimit(n)
 
 	maxLen := maxLen(kubeCtxs)
@@ -226,12 +234,13 @@ func runAll(kubeCtxs []string, argMaker func(string) []string, stdout, stderr io
 
 	for i, kctx := range kubeCtxs {
 		kctx := kctx
+		ctx := ctx
 		colFn := colors[i%len(colors)]
 		wg.Go(func() error {
 			prefix := []byte(leftPad(colFn(kctx), len(kctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
-			return run(argMaker(kctx), wo, we)
+			return run(ctx, argMaker(kctx), wo, we)
 		})
 	}
 	return wg.Wait()
@@ -247,8 +256,8 @@ func maxLen(s []string) int {
 	return max
 }
 
-func run(args []string, stdout, stderr io.Writer) (err error) {
-	cmd := exec.Command("kubectl", args...)
+func run(ctx context.Context, args []string, stdout, stderr io.Writer) (err error) {
+	cmd := exec.CommandContext(ctx, "kubectl", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	return cmd.Run()
