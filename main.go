@@ -44,6 +44,7 @@ var (
 
 	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
+	auto    = false
 )
 
 func logErr(msg string) {
@@ -85,6 +86,8 @@ func main() {
 			// end
 			if arg == "--" {
 				logErr("need more args after '--'")
+			} else if arg == "--auto" {
+				logErr("need more args after '--auto'")
 			} else {
 				logErr("did not find '--' as an argument, see -h")
 			}
@@ -92,10 +95,14 @@ func main() {
 		if arg == "--" {
 			args = os.Args[i:]
 			break
+		} else if arg == "--auto" {
+			args = os.Args[i:]
+			auto = true
+			break
 		}
 	}
 	if len(args) == 0 {
-		logErr("must supply arguments/options to kubectl after '--'")
+		logErr("must supply arguments/options to kubectl after '--' or '--auto'")
 	}
 	args = args[1:]
 
@@ -118,13 +125,20 @@ func main() {
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
-		fmt.Fprintln(os.Stderr, "Will run command in contexts:")
-		for _, c := range outCtx {
-			fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
-		}
-		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-		if err := prompt(os.Stdin); err != nil {
-			logErr(err.Error())
+		if auto == true {
+			fmt.Fprintln(os.Stderr, "Running command in context(s) automatically:")
+			for _, c := range outCtx {
+				fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "Will run command in context(s):")
+			for _, c := range outCtx {
+				fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
+			}
+			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
+			if err := prompt(os.Stdin); err != nil {
+				logErr(err.Error())
+			}
 		}
 	}
 
