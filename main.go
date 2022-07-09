@@ -44,7 +44,7 @@ var (
 
 	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
-	auto    = false
+	quiet   = flag.Bool("q", false, "bypasses prompt")
 )
 
 func logErr(msg string) {
@@ -86,8 +86,6 @@ func main() {
 			// end
 			if arg == "--" {
 				logErr("need more args after '--'")
-			} else if arg == "--auto" {
-				logErr("need more args after '--auto'")
 			} else {
 				logErr("did not find '--' as an argument, see -h")
 			}
@@ -95,14 +93,10 @@ func main() {
 		if arg == "--" {
 			args = os.Args[i:]
 			break
-		} else if arg == "--auto" {
-			args = os.Args[i:]
-			auto = true
-			break
 		}
 	}
 	if len(args) == 0 {
-		logErr("must supply arguments/options to kubectl after '--' or '--auto'")
+		logErr("must supply arguments/options to kubectl after '--'")
 	}
 	args = args[1:]
 
@@ -125,8 +119,8 @@ func main() {
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
-		if auto {
-			fmt.Fprintln(os.Stderr, "Running command in context(s) automatically:")
+		if *quiet {
+			fmt.Fprintln(os.Stderr, "Running commands in context(s):")
 			for _, c := range outCtx {
 				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
