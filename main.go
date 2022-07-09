@@ -48,7 +48,7 @@ var (
 )
 
 func logErr(msg string) {
-	fmt.Fprintf(os.Stderr, red("error: "))
+	fmt.Fprintf(os.Stderr, "%s", red("error: "))
 	fmt.Fprintf(os.Stderr, "%v\n", msg)
 	os.Exit(1)
 }
@@ -125,15 +125,15 @@ func main() {
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
-		if auto == true {
+		if auto {
 			fmt.Fprintln(os.Stderr, "Running command in context(s) automatically:")
 			for _, c := range outCtx {
-				fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
+				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "Will run command in context(s):")
 			for _, c := range outCtx {
-				fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
+				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
 			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
 			if err := prompt(os.Stdin); err != nil {
