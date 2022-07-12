@@ -44,7 +44,7 @@ var (
 
 	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
-	quiet   = flag.Bool("q", false, "bypasses prompt")
+	quiet   = flag.Bool("q", false, "accept confirmation prompts")
 )
 
 func logErr(msg string) {
@@ -120,7 +120,6 @@ func main() {
 
 	if os.Getenv(envDisablePrompts) == "" {
 		if *quiet {
-			fmt.Fprintln(os.Stderr, "Running commands in context(s):")
 			for _, c := range outCtx {
 				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
