@@ -1,4 +1,4 @@
-module kubectl-allctx
+module github.com/ahmetb/kubectl-allctx
 
 go 1.18
 
