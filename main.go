@@ -44,10 +44,11 @@ var (
 
 	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
+	quiet   = flag.Bool("q", false, "accept confirmation prompts")
 )
 
 func logErr(msg string) {
-	fmt.Fprintf(os.Stderr, red("error: "))
+	fmt.Fprintf(os.Stderr, "%s", red("error: "))
 	fmt.Fprintf(os.Stderr, "%v\n", msg)
 	os.Exit(1)
 }
@@ -118,13 +119,19 @@ func main() {
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
-		fmt.Fprintln(os.Stderr, "Will run command in contexts:")
-		for _, c := range outCtx {
-			fmt.Fprintf(os.Stderr, gray(fmt.Sprintf("  - %s\n", c)))
-		}
-		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-		if err := prompt(os.Stdin); err != nil {
-			logErr(err.Error())
+		if *quiet {
+			for _, c := range outCtx {
+				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "Will run command in context(s):")
+			for _, c := range outCtx {
+				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
+			}
+			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
+			if err := prompt(os.Stdin); err != nil {
+				logErr(err.Error())
+			}
 		}
 	}
 
