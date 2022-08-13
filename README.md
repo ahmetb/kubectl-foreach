@@ -3,27 +3,60 @@
 Run a `kubectl` command in one or more contexts (cluster) based on exact name
 match or pattern.
 
-Example:
+## Usage
+
+**Exact match:** Run a command ("kubectl version") on contexts `c1`, `c2`
+and `c3`:
 
 ```sh
-# run "kubectl version" on all contexts starting with 'gke'
-# note that we're escaping the ~ character, which the shell would otherwise expand
-kubectl allctx '~^gke' -- version
+kubectl allctx c1 c2 c3 -- version
+```
 
-# run a command on multiple contexts (exact name match)
-kubectl allctx ctx1 ctx2 -- get pods
+**All contexts:** empty context matches all contexts.
 
-# run on all context, but two at a time (empty regexp matches all)
-kubectl allctx -c 2 '~' -- version
+```sh
+kubectl allctx -- version
+```
 
-# specify where the context name gets passed in the command executed (_ replaced with context name)
-kubectl allctx -I _ '~test$' -- my_plugin -ctx=_
+**Pattern matching:** Run a command on contexts starting with `gke` and `aws` (regular
+expression syntax):
+
+```sh
+kubectl allctx /^gke/ -- get pods
+```
+
+**Mixing patterns and exact matches:** Matched contexts are added together.
+
+```sh
+kubectl allctx c1 c2 /re1/ /re2 -- version
+```
+
+**Exclusion:**  Run on all contexts except `c1` and ending with `prod`:
+
+```shell
+kubectl allctx -c1 -/prod$/ -- version
+```
+
+**Argument customization:** Customize how context name is passed to the command
+(useful for kubectl plugins as `--context` must be specified after plugin name).
+In this example, `_` is replaced with the context name.
+
+```shell
+kubectl allctx -I_ -- my_plugin -ctx=_
+```
+
+**Limit parallelization:** Only run 3 commands at a time:
+
+```
+kubectl allctx -c 3 /^gke-/
 ```
 
 ## Install
 
-TODO(ahmetb): Add krew installation method
+Currently, the `go` command is the only way to install
+(make sure `~/go/bin` is in your `PATH`):
 
 ```
 go install github.com/ahmetb/kubectl-allctx@latest
 ```
+
