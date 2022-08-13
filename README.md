@@ -49,7 +49,7 @@ kubectl allctx c1 c2 c3 -- version
 ```
 
 **Match to contexts by pattern:** Run a command on contexts starting with `gke`
-and `aws` (regular expression syntax):
+(regular expression syntax):
 
 ```sh
 kubectl allctx /^gke/ -- get pods
