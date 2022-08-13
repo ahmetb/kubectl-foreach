@@ -1,43 +1,38 @@
 package main
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseArgs(t *testing.T) {
+func TestSeparateArgs(t *testing.T) {
 	t.Run("no args", func(t *testing.T) {
-		_, _, err := parseArgs(nil)
-		assert.NotNil(t, err)
-	})
-	t.Run("only argv[1]", func(t *testing.T) {
-		_, _, err := parseArgs([]string{})
+		_, _, err := separateArgs(nil)
 		assert.NotNil(t, err)
 	})
 	t.Run("no separator", func(t *testing.T) {
-		_, _, err := parseArgs([]string{"a", "b"})
+		_, _, err := separateArgs([]string{"a", "b"})
 		assert.NotNil(t, err)
 	})
 	t.Run("only separator", func(t *testing.T) {
-		_, _, err := parseArgs([]string{"--"})
+		_, _, err := separateArgs([]string{"--"})
 		assert.NotNil(t, err)
 	})
-	t.Run("no command", func(t *testing.T) {
-		_, _, err := parseArgs([]string{"a", "b", "--"})
+	t.Run("no right", func(t *testing.T) {
+		_, _, err := separateArgs([]string{"a", "b", "--"})
 		assert.NotNil(t, err)
 	})
-	t.Run("filter parse err", func(t *testing.T) {
-		_, _, err := parseArgs([]string{"/re[A-Z/", "--", "foo"})
+	t.Run("no left", func(t *testing.T) {
+		l, r, err := separateArgs([]string{"--", "a", "b"})
 		assert.NotNil(t, err)
+		assert.Empty(t, l)
+		assert.Equal(t, []string{"a", "b"}, r)
 	})
-	t.Run("parse ok", func(t *testing.T) {
-		f, a, err := parseArgs([]string{"/re/", "a", "--", "foo"})
+	t.Run("parses left and right", func(t *testing.T) {
+		l, r, err := separateArgs([]string{"a", "b", "--", "foo"})
 		assert.Nil(t, err)
-		assert.Equal(t, []filter{
-			pattern{regexp.MustCompile("re")},
-			exact("a")}, f)
-		assert.Equal(t, []string{"foo"}, a)
+		assert.Equal(t, []string{"a", "b"}, r)
+		assert.Equal(t, []string{"foo"}, l)
 	})
 }

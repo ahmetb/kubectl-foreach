@@ -41,9 +41,10 @@ var (
 	gray  = chalk.Gray
 	red   = chalk.Red
 
-	repl    = flag.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
-	workers = flag.Int("c", 0, "parallel runs (default: as many as matched contexts)")
-	quiet   = flag.Bool("q", false, "accept confirmation prompts")
+	fl      = flag.NewFlagSet("kubectl allctx", flag.ContinueOnError)
+	repl    = fl.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
+	workers = fl.Int("c", 0, "parallel runs (default: as many as matched contexts)")
+	quiet   = fl.Bool("q", false, "accept confirmation prompts")
 )
 
 func printErrAndExit(msg string) {
@@ -51,7 +52,40 @@ func printErrAndExit(msg string) {
 	os.Exit(1)
 }
 
+func printUsage(w io.Writer) {
+	fmt.Fprint(w, `Usage:
+    kubectl allctx [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
+
+Patterns can be used to match contexts in kubeconfig:
+      (empty): matches all contexts
+      PATTERN: matches context with exact name
+    /PATTERN/: matches context with regular expression
+     ^PATTERN: removes results from matched contexts
+    
+Options:
+    -c=NUM       Limit parallel executions
+    -h/--help    Print help
+    -I=VAL       Replace VAL occuring in KUBECTL_ARGS with context name
+`)
+	os.Exit(0)
+}
+
 func main() {
+	log.SetOutput(os.Stderr)
+	log.SetFlags(0)
+	fl.Usage = func() { printUsage(os.Stderr) }
+
+	if err := fl.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			printUsage(os.Stderr)
+		}
+		printErrAndExit(err.Error())
+	}
+	_, kubectlArgs, err := separateArgs(os.Args[1:])
+	if err != nil {
+		printErrAndExit(fmt.Errorf("failed to parse command-line arguments: %w", err).Error())
+	}
+
 	ctx := context.Background()
 	ctx, _ = signal.NotifyContext(ctx, os.Interrupt)
 	// initialize signal handler after
@@ -60,21 +94,28 @@ func main() {
 		fmt.Fprintln(os.Stderr, gray("received exit signal"))
 	}()
 
-	log.SetOutput(os.Stderr)
-	log.SetFlags(0)
-	flag.Parse()
 	if *workers < 0 {
 		printErrAndExit("-c < 0")
-	}
-	filters, args, err := parseArgs(os.Args[1:])
-	if err != nil {
-		printErrAndExit(fmt.Errorf("failed to parse command-line arguments: %w", err).Error())
 	}
 
 	ctxs, err := kubeContexts(ctx)
 	if err != nil {
 		printErrAndExit(err.Error())
 	}
+	var filters []filter
+
+	// re-parse flags to extract positional arguments of the tool, minus '--' + kubectl args
+	if err := fl.Parse(trimSuffix(os.Args[1:], append([]string{"--"}, kubectlArgs...))); err != nil {
+		printErrAndExit(err.Error())
+	}
+	for _, arg := range fl.Args() {
+		f, err := parseFilter(arg)
+		if err != nil {
+			printErrAndExit(err.Error())
+		}
+		filters = append(filters, f)
+	}
+
 	ctxMatches := matchContexts(ctxs, filters)
 
 	if len(ctxMatches) == 0 {
@@ -101,7 +142,7 @@ func main() {
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
 
-	err = runAll(ctx, ctxMatches, replaceArgs(args, *repl), syncOut, syncErr)
+	err = runAll(ctx, ctxMatches, replaceArgs(kubectlArgs, *repl), syncOut, syncErr)
 	if err != nil {
 		printErrAndExit(err.Error())
 	}
@@ -217,6 +258,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) (err erro
 	return cmd.Run()
 }
 
+// prompt returns an error if user rejects or if ctx cancels.
 func prompt(ctx context.Context, r io.Reader) error {
 	pr, pw := io.Pipe()
 	go io.Copy(pw, r)
@@ -243,4 +285,16 @@ func prompt(ctx context.Context, r io.Reader) error {
 		pr.Close()
 		return fmt.Errorf("prompt canceled")
 	}
+}
+
+func trimSuffix(a []string, suffix []string) []string {
+	if len(suffix) > len(a) {
+		return a
+	}
+	for i, j := len(a)-1, len(suffix)-1; j >= 0; i, j = i-1, j-1 {
+		if a[i] != suffix[j] {
+			return a
+		}
+	}
+	return a[:len(a)-len(suffix)]
 }
