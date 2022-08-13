@@ -78,7 +78,7 @@ In this example, `_` is replaced with the context name when calling "kubectl
 my_plugin".
 
 ```shell
-kubectl allctx -I_ -- my_plugin -ctx=_
+kubectl allctx -I _ -- my_plugin -ctx=_
 ```
 
 **Limit parallelization:** Only run 3 commands at a time:
