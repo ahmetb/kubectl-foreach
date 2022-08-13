@@ -134,14 +134,16 @@ func main() {
 		printErrAndExit("query matched no contexts from kubeconfig")
 	}
 
-	fmt.Fprintln(os.Stderr, "Will run command in context(s):")
-	for _, c := range ctxMatches {
-		fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
-	}
-	if os.Getenv(envDisablePrompts) != "" {
-		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-		if err := prompt(ctx, os.Stdin); err != nil {
-			printErrAndExit(err.Error())
+	if os.Getenv(envDisablePrompts) == "" {
+		fmt.Fprintln(os.Stderr, "Will run command in context(s):")
+		for _, c := range ctxMatches {
+			fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
+		}
+		if !*quiet {
+			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
+			if err := prompt(ctx, os.Stdin); err != nil {
+				printErrAndExit(err.Error())
+			}
 		}
 	}
 
@@ -227,17 +229,26 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) (err erro
 // prompt returns an error if user rejects or if ctx cancels.
 func prompt(ctx context.Context, r io.Reader) error {
 	pr, pw := io.Pipe()
-	go io.Copy(pw, r)
+	go func() {
+		if _, err := io.Copy(pw, r); err != nil {
+			pw.Close()
+		}
+	}()
 	defer pw.Close()
 
-	scanDone := make(chan error)
+	scanDone := make(chan error, 1)
 
 	go func() {
 		s := bufio.NewScanner(pr)
 		for s.Scan() {
+			if err := s.Err(); err != nil {
+				scanDone <- err
+				return
+			}
 			v := s.Text()
 			if v == "y" || v == "Y" || v == "" {
 				scanDone <- nil
+				return
 			}
 			break
 		}

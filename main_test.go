@@ -16,9 +16,10 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -67,13 +68,17 @@ func TestPrompt(t *testing.T) {
 		assert.NoError(t, prompt(context.TODO(), strings.NewReader("Y\n")))
 		assert.NoError(t, prompt(context.TODO(), strings.NewReader("\n")))
 	})
+
+	t.Run("faulty reader", func(t *testing.T) {
+		assert.Error(t, prompt(context.TODO(), iotest.ErrReader(errors.New("phony error"))))
+	})
 }
 
 type blockingReader struct{ close <-chan struct{} }
 
 func (b blockingReader) Read(p []byte) (n int, err error) {
 	<-b.close
-	return 0, fmt.Errorf("reader closed")
+	return 0, errors.New("reader closed")
 
 }
 
