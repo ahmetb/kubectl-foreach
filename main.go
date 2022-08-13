@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"regexp"
 	"strings"
 
 	"github.com/jwalton/gchalk"
@@ -47,15 +46,15 @@ var (
 	quiet   = flag.Bool("q", false, "accept confirmation prompts")
 )
 
-func logErr(msg string) {
+func printErrAndExit(msg string) {
 	fmt.Fprintf(os.Stderr, "%s", red("error: "))
-	fmt.Fprintf(os.Stderr, "%v\n", msg)
 	os.Exit(1)
 }
 
 func main() {
 	ctx := context.Background()
 	ctx, _ = signal.NotifyContext(ctx, os.Interrupt)
+	// initialize signal handler after
 	go func() {
 		<-ctx.Done()
 		fmt.Fprintln(os.Stderr, gray("received exit signal"))
@@ -65,72 +64,36 @@ func main() {
 	log.SetFlags(0)
 	flag.Parse()
 	if *workers < 0 {
-		logErr("-c < 0")
+		printErrAndExit("-c < 0")
 	}
-
-	var filters []filter
-	var args []string
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if strings.HasPrefix(arg, "~") {
-			re, err := regexp.Compile(arg[1:])
-			if err != nil {
-				logErr(fmt.Sprintf("bad pattern: %v", err))
-			}
-			filters = append(filters, pattern{re})
-		} else {
-			filters = append(filters, exact(arg))
-		}
-
-		if i+1 == len(os.Args) {
-			// end
-			if arg == "--" {
-				logErr("need more args after '--'")
-			} else {
-				logErr("did not find '--' as an argument, see -h")
-			}
-		}
-		if arg == "--" {
-			args = os.Args[i:]
-			break
-		}
+	filters, args, err := parseArgs(os.Args[1:])
+	if err != nil {
+		printErrAndExit(fmt.Errorf("failed to parse command-line arguments: %w", err).Error())
 	}
-	if len(args) == 0 {
-		logErr("must supply arguments/options to kubectl after '--'")
-	}
-	args = args[1:]
 
 	ctxs, err := kubeContexts(ctx)
 	if err != nil {
-		logErr(err.Error())
+		printErrAndExit(err.Error())
 	}
-	var outCtx []string
-	for _, c := range ctxs {
-		for _, f := range filters {
-			if f.match(c) {
-				outCtx = append(outCtx, c)
-				break
-			}
-		}
-	}
+	ctxMatches := matchContexts(ctxs, filters)
 
-	if len(outCtx) == 0 {
-		logErr("query matched no contexts from kubeconfig")
+	if len(ctxMatches) == 0 {
+		printErrAndExit("query matched no contexts from kubeconfig")
 	}
 
 	if os.Getenv(envDisablePrompts) == "" {
 		if *quiet {
-			for _, c := range outCtx {
+			for _, c := range ctxMatches {
 				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "Will run command in context(s):")
-			for _, c := range outCtx {
+			for _, c := range ctxMatches {
 				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
 			}
 			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-			if err := prompt(os.Stdin); err != nil {
-				logErr(err.Error())
+			if err := prompt(ctx, os.Stdin); err != nil {
+				printErrAndExit(err.Error())
 			}
 		}
 	}
@@ -138,9 +101,9 @@ func main() {
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
 
-	err = runAll(ctx, outCtx, replaceArgs(args, *repl), syncOut, syncErr)
+	err = runAll(ctx, ctxMatches, replaceArgs(args, *repl), syncOut, syncErr)
 	if err != nil {
-		logErr(err.Error())
+		printErrAndExit(err.Error())
 	}
 }
 
@@ -155,22 +118,6 @@ func replaceArgs(args []string, repl string) func(ctx string) []string {
 		}
 		return out
 	}
-}
-
-type filter interface {
-	match(string) bool
-}
-
-type exact string
-
-func (e exact) match(in string) bool {
-	return in == string(e)
-}
-
-type pattern struct{ *regexp.Regexp }
-
-func (p pattern) match(in string) bool {
-	return p.MatchString(in)
 }
 
 func kubeContexts(ctx context.Context) ([]string, error) {
@@ -270,14 +217,30 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) (err erro
 	return cmd.Run()
 }
 
-func prompt(r io.Reader) error {
-	s := bufio.NewScanner(r)
-	for s.Scan() {
-		v := s.Text()
-		if v == "y" || v == "Y" || v == "" {
-			return nil
+func prompt(ctx context.Context, r io.Reader) error {
+	pr, pw := io.Pipe()
+	go io.Copy(pw, r)
+	defer pw.Close()
+
+	scanDone := make(chan error)
+
+	go func() {
+		s := bufio.NewScanner(pr)
+		for s.Scan() {
+			v := s.Text()
+			if v == "y" || v == "Y" || v == "" {
+				scanDone <- nil
+			}
+			break
 		}
-		break
+		scanDone <- errors.New("user refused execution")
+	}()
+
+	select {
+	case res := <-scanDone:
+		return res
+	case <-ctx.Done():
+		pr.Close()
+		return fmt.Errorf("prompt canceled")
 	}
-	return errors.New("cancelled")
 }

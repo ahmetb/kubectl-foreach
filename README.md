@@ -5,41 +5,60 @@ match or pattern.
 
 ## Usage
 
-**Exact match:** Run a command ("kubectl version") on contexts `c1`, `c2`
+```text
+Usage:
+    kubectl allctx [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
+
+Patterns can be used to match contexts in kubeconfig:
+      (empty): matches all contexts
+      PATTERN: matches context with exact name
+    /PATTERN/: matches context with regular expression
+     ^PATTERN: removes results from matched contexts
+    
+Options:
+    -c=NUM       Limit parallel executions
+    -h/--help    Print help
+    -I=VAL       Replace VAL occuring in KUBECTL_ARGS with context name
+    
+```
+
+## Examples
+
+**Match to contexts by name:** Run a command ("kubectl version") on contexts `c1`, `c2`
 and `c3`:
 
 ```sh
 kubectl allctx c1 c2 c3 -- version
 ```
 
-**All contexts:** empty context matches all contexts.
-
-```sh
-kubectl allctx -- version
-```
-
-**Pattern matching:** Run a command on contexts starting with `gke` and `aws` (regular
-expression syntax):
+**Match to contexts by pattern:** Run a command on contexts starting with `gke`
+and `aws` (regular expression syntax):
 
 ```sh
 kubectl allctx /^gke/ -- get pods
 ```
 
-**Mixing patterns and exact matches:** Matched contexts are added together.
+**Match all contexts:** empty context matches all contexts.
 
 ```sh
-kubectl allctx c1 c2 /re1/ /re2 -- version
+kubectl allctx -- version
 ```
 
-**Exclusion:**  Run on all contexts except `c1` and ending with `prod`:
+**Excluding contexts:** Use the matching syntaxes with a `^` prefix to use them
+for exclusion. If no matching contexts are specified.
+
+e.g. match all contexts **except** `c1` and except those ending
+with `prod` (single quotes for escaping `$` in the shell):
 
 ```shell
-kubectl allctx -c1 -/prod$/ -- version
+kubectl allctx ^c1 ^/prod'$'/ -- version
 ```
 
-**Argument customization:** Customize how context name is passed to the command
+**Using with kubectl plugins:** Customize how context name is passed to the command
 (useful for kubectl plugins as `--context` must be specified after plugin name).
-In this example, `_` is replaced with the context name.
+
+In this example, `_` is replaced with the context name when calling "kubectl
+my_plugin".
 
 ```shell
 kubectl allctx -I_ -- my_plugin -ctx=_
