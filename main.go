@@ -48,7 +48,7 @@ var (
 )
 
 func printErrAndExit(msg string) {
-	fmt.Fprintf(os.Stderr, "%s", red("error: "))
+	fmt.Fprintf(os.Stderr, "%s%s\n", red("error: "), msg)
 	os.Exit(1)
 }
 
