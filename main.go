@@ -122,20 +122,14 @@ func main() {
 		printErrAndExit("query matched no contexts from kubeconfig")
 	}
 
-	if os.Getenv(envDisablePrompts) == "" {
-		if *quiet {
-			for _, c := range ctxMatches {
-				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
-			}
-		} else {
-			fmt.Fprintln(os.Stderr, "Will run command in context(s):")
-			for _, c := range ctxMatches {
-				fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
-			}
-			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-			if err := prompt(ctx, os.Stdin); err != nil {
-				printErrAndExit(err.Error())
-			}
+	fmt.Fprintln(os.Stderr, "Will run command in context(s):")
+	for _, c := range ctxMatches {
+		fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
+	}
+	if os.Getenv(envDisablePrompts) != "" {
+		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
+		if err := prompt(ctx, os.Stdin); err != nil {
+			printErrAndExit(err.Error())
 		}
 	}
 
