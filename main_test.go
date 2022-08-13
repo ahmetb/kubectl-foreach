@@ -62,3 +62,18 @@ func (b blockingReader) Read(p []byte) (n int, err error) {
 	return 0, fmt.Errorf("reader closed")
 
 }
+
+func Test_replaceArgs(t *testing.T) {
+	t.Run("no replace", func(t *testing.T) {
+		assert.Equal(t, []string{"--context=ctx"}, replaceArgs(nil, "")("ctx"))
+		assert.Equal(t, []string{"--context=ctx", "arg1", "arg2"}, replaceArgs([]string{"arg1", "arg2"}, "")("ctx"))
+	})
+	t.Run("no hits", func(t *testing.T) {
+		assert.Equal(t, []string{}, replaceArgs([]string{}, "X")("ctx"))
+		assert.Equal(t, []string{"arg1"}, replaceArgs([]string{"arg1"}, "X")("ctx"))
+	})
+	t.Run("hits", func(t *testing.T) {
+		assert.Equal(t, []string{"a", "ctxctx", "actx"}, replaceArgs([]string{"a", "XX", "aX"}, "X")("ctx"))
+		assert.Equal(t, []string{"a", "ctx", "aX"}, replaceArgs([]string{"a", "XX", "aX"}, "XX")("ctx"))
+	})
+}
