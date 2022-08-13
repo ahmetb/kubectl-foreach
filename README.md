@@ -8,7 +8,7 @@ Run a `kubectl` command in one or more contexts (clusters) in parallel.
 Usage:
     kubectl allctx [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
 
-Patterns can be used to match contexts in kubeconfig:
+Patterns can be used to match context names from kubeconfig:
       (empty): matches all contexts
       PATTERN: matches context with exact name
     /PATTERN/: matches context with regular expression
@@ -17,7 +17,7 @@ Patterns can be used to match contexts in kubeconfig:
 Options:
     -c=NUM       Limit parallel executions (default: 0, unlimited)
     -h/--help    Print help
-    -I=VAL       Replace VAL occuring in KUBECTL_ARGS with context name
+    -I=VAL       Replace VAL occurring in KUBECTL_ARGS with context name
 ```
 
 ## Demo

@@ -53,10 +53,10 @@ func printErrAndExit(msg string) {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprint(w, `Usage:
+	_, _ = fmt.Fprint(w, `Usage:
     kubectl allctx [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
 
-Patterns can be used to match contexts in kubeconfig:
+Patterns can be used to match context names from kubeconfig:
       (empty): matches all contexts
       PATTERN: matches context with exact name
     /PATTERN/: matches context with regular expression
@@ -65,8 +65,20 @@ Patterns can be used to match contexts in kubeconfig:
 Options:
     -c=NUM       Limit parallel executions (default: 0, unlimited)
     -h/--help    Print help
-    -I=VAL       Replace VAL occuring in KUBECTL_ARGS with context name
-`)
+    -I=VAL       Replace VAL occurring in KUBECTL_ARGS with context name
+
+Examples:
+    # get nodes on contexts named a b c
+    kubectl allctx a b c -- get nodes 
+
+    # get nodes on all contexts named c0..9 except c1 (note the escaping)
+    kubectl allctx '/^c[0-9]/' ^c1	 -- get nodes
+
+    # get nodes on all contexts that has "prod" but not "foo"
+    kubectl allctx /prod/ ^/foo/ -- get nodes
+
+    # use 'kubectl tail' plugin to follow logs of pods in contexts named *test*
+    kubectl allctx -I _ /test/ -- tail --context=_ -l app=foo`+"\n")
 	os.Exit(0)
 }
 
@@ -83,7 +95,7 @@ func main() {
 	}
 	_, kubectlArgs, err := separateArgs(os.Args[1:])
 	if err != nil {
-		printErrAndExit(fmt.Errorf("failed to parse command-line arguments: %w", err).Error())
+		printErrAndExit(fmt.Errorf("failed to parse command-line arguments: %w. see -h/--help", err).Error())
 	}
 
 	ctx := context.Background()
