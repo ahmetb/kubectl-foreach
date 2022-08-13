@@ -1,7 +1,6 @@
 # kubectl allctx
 
-Run a `kubectl` command in one or more contexts (cluster) based on exact name
-match or pattern.
+Run a `kubectl` command in one or more contexts (clusters) in parallel. 
 
 ## Usage
 
@@ -19,6 +18,25 @@ Options:
     -c=NUM       Limit parallel executions (default: 0, unlimited)
     -h/--help    Print help
     -I=VAL       Replace VAL occuring in KUBECTL_ARGS with context name
+```
+
+## Demo
+
+Query a pod by label in `minikube` and `*-prod*` contexts:
+
+```text
+$ kubectl allctx /-prod/ minikube -- get pods -n kube-system --selector compute.twitter.com/app=coredns --no-headers
+
+     eu-prod | coredns-59bd9867bb-6rbx7   2/2     Running   0          78d
+     eu-prod | coredns-59bd9867bb-9xczh   2/2     Running   0          78d
+     eu-prod | coredns-59bd9867bb-fvn6t   2/2     Running   0          78d
+    minikube | No resources found in kube-system namespace.
+ useast-prod | coredns-6fd4bd9db4-7w9wv   2/2     Running   0          78d
+ useast-prod | coredns-6fd4bd9db4-9pk8n   2/2     Running   0          78d
+ useast-prod | coredns-6fd4bd9db4-xphr4   2/2     Running   0          78d
+ uswest-prod | coredns-6f987df9bc-6fgc2   2/2     Running   0          78d
+ uswest-prod | coredns-6f987df9bc-9gxvt   2/2     Running   0          78d
+ uswest-prod | coredns-6f987df9bc-d88jk   2/2     Running   0          78d
 ```
 
 ## Examples
