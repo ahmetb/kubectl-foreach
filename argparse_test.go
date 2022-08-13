@@ -25,14 +25,14 @@ func TestSeparateArgs(t *testing.T) {
 	})
 	t.Run("no left", func(t *testing.T) {
 		l, r, err := separateArgs([]string{"--", "a", "b"})
-		assert.NotNil(t, err)
+		assert.Nil(t, err)
 		assert.Empty(t, l)
 		assert.Equal(t, []string{"a", "b"}, r)
 	})
 	t.Run("parses left and right", func(t *testing.T) {
 		l, r, err := separateArgs([]string{"a", "b", "--", "foo"})
 		assert.Nil(t, err)
-		assert.Equal(t, []string{"a", "b"}, r)
-		assert.Equal(t, []string{"foo"}, l)
+		assert.Equal(t, []string{"a", "b"}, l)
+		assert.Equal(t, []string{"foo"}, r)
 	})
 }
