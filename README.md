@@ -18,7 +18,7 @@ Patterns can be used to match context names from kubeconfig:
 Options:
     -c=NUM      Limit parallel executions (default: 0, unlimited)
     -I=VAL      Replace VAL occurring in KUBECTL_ARGS with context name
-	-q          Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
+    -q          Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
     -h/--help   Print help
 ```
 
