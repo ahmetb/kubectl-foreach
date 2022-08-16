@@ -1,6 +1,7 @@
 # kubectl allctx
 
-Run a `kubectl` command in one or more contexts (clusters) in parallel. 
+Run a `kubectl` command in one or more contexts (clusters) in parallel
+(similar to GNU parallel/xargs).
 
 ## Usage
 
@@ -97,3 +98,10 @@ Currently, the `go` command is the only way to install
 go install github.com/ahmetb/kubectl-allctx@latest
 ```
 
+## Remarks
+
+**Do not use this tool programmatically:**
+This tool is not intended for deploying workloads to clusters, or using
+programmatically. Therefore, it does not provide a structured output format or
+ordered printing that is meant to be parsed by or piped to other programs (maybe
+except for `grep`).
