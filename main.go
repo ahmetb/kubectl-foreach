@@ -63,9 +63,10 @@ Patterns can be used to match context names from kubeconfig:
      ^PATTERN: removes results from matched contexts
     
 Options:
-    -c=NUM       Limit parallel executions (default: 0, unlimited)
-    -h/--help    Print help
-    -I=VAL       Replace VAL occurring in KUBECTL_ARGS with context name
+    -c=NUM      Limit parallel executions (default: 0, unlimited)
+    -I=VAL      Replace VAL occurring in KUBECTL_ARGS with context name
+	-q          Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
+    -h/--help   Print help
 
 Examples:
     # get nodes on contexts named a b c
@@ -134,16 +135,14 @@ func main() {
 		printErrAndExit("query matched no contexts from kubeconfig")
 	}
 
-	if os.Getenv(envDisablePrompts) == "" {
-		fmt.Fprintln(os.Stderr, "Will run command in context(s):")
-		for _, c := range ctxMatches {
-			fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
-		}
-		if !*quiet {
-			fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
-			if err := prompt(ctx, os.Stdin); err != nil {
-				printErrAndExit(err.Error())
-			}
+	fmt.Fprintln(os.Stderr, "Will run command in context(s):")
+	for _, c := range ctxMatches {
+		fmt.Fprintf(os.Stderr, "%s", gray(fmt.Sprintf("  - %s\n", c)))
+	}
+	if !*quiet && os.Getenv(envDisablePrompts) == "" {
+		fmt.Fprintf(os.Stderr, "Continue? [Y/n]: ")
+		if err := prompt(ctx, os.Stdin); err != nil {
+			printErrAndExit(err.Error())
 		}
 	}
 

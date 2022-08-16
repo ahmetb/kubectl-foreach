@@ -15,9 +15,10 @@ Patterns can be used to match context names from kubeconfig:
      ^PATTERN: removes results from matched contexts
     
 Options:
-    -c=NUM       Limit parallel executions (default: 0, unlimited)
-    -h/--help    Print help
-    -I=VAL       Replace VAL occurring in KUBECTL_ARGS with context name
+    -c=NUM      Limit parallel executions (default: 0, unlimited)
+    -I=VAL      Replace VAL occurring in KUBECTL_ARGS with context name
+	-q          Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
+    -h/--help   Print help
 ```
 
 ## Demo
