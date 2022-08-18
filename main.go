@@ -58,15 +58,16 @@ func printUsage(w io.Writer) {
 
 Patterns can be used to match context names from kubeconfig:
       (empty): matches all contexts
-      PATTERN: matches context with exact name
+         NAME: matches context with exact name
     /PATTERN/: matches context with regular expression
-     ^PATTERN: removes results from matched contexts
+        ^NAME: remove context with exact name from the matched results
+   ^/PATTERN/: remove contexts matching the regular expression from the results
     
 Options:
-    -c=NUM      Limit parallel executions (default: 0, unlimited)
-    -I=VAL      Replace VAL occurring in KUBECTL_ARGS with context name
-    -q          Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
-    -h/--help   Print help
+    -c=NUM     Limit parallel executions (default: 0, unlimited)
+    -I=VAL     Replace VAL occurring in KUBECTL_ARGS with context name
+    -q         Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
+    -h/--help  Print help
 
 Examples:
     # get nodes on contexts named a b c
