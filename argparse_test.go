@@ -49,4 +49,10 @@ func TestSeparateArgs(t *testing.T) {
 		assert.Equal(t, []string{"a", "b"}, l)
 		assert.Equal(t, []string{"foo"}, r)
 	})
+	t.Run("uses the leftmost double dash", func(t *testing.T) {
+		l, r, err := separateArgs([]string{"a", "b", "--", "foo", "--", "--bar"})
+		assert.Nil(t, err)
+		assert.Equal(t, []string{"a", "b"}, l)
+		assert.Equal(t, []string{"foo", "--", "--bar"}, r)
+	})
 }
