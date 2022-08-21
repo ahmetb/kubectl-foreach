@@ -1,0 +1,28 @@
+before:
+  hooks:
+  - go mod download
+builds:
+- id: kubectl-allctx
+  main: .
+  binary: kubectl-allctx
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - amd64
+  - arm64
+  ignore:
+  - goos: windows
+    goarch: arm64
+
+archives:
+- builds:
+  - kubectl-allctx
+  # name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  wrap_in_directory: false
+  format: tar.gz
+  files:
+  - LICENSE
