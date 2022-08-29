@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	envDisablePrompts = `ALLCTX_DISABLE_PROMPTS`
+	envDisablePrompts = `KUBECTL_FOREACH_DISABLE_PROMPTS`
 )
 
 var (
@@ -41,7 +41,7 @@ var (
 	gray  = chalk.Gray
 	red   = chalk.Red
 
-	fl      = flag.NewFlagSet("kubectl allctx", flag.ContinueOnError)
+	fl      = flag.NewFlagSet("kubectl foreach", flag.ContinueOnError)
 	repl    = fl.String("I", "", "string to replace in cmd args with context name (like xargs -I)")
 	workers = fl.Int("c", 0, "parallel runs (default: as many as matched contexts)")
 	quiet   = fl.Bool("q", false, "accept confirmation prompts")
@@ -54,7 +54,7 @@ func printErrAndExit(msg string) {
 
 func printUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `Usage:
-    kubectl allctx [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
+    kubectl foreach [OPTIONS] [PATTERN]... -- [KUBECTL_ARGS...]
 
 Patterns can be used to match context names from kubeconfig:
       (empty): matches all contexts
@@ -66,21 +66,21 @@ Patterns can be used to match context names from kubeconfig:
 Options:
     -c=NUM     Limit parallel executions (default: 0, unlimited)
     -I=VAL     Replace VAL occurring in KUBECTL_ARGS with context name
-    -q         Disable and accept confirmation prompts ($ALLCTX_DISABLE_PROMPTS) 
+    -q         Disable and accept confirmation prompts ($KUBECTL_FOREACH_DISABLE_PROMPTS) 
     -h/--help  Print help
 
 Examples:
     # get nodes on contexts named a b c
-    kubectl allctx a b c -- get nodes 
+    kubectl foreach a b c -- get nodes 
 
     # get nodes on all contexts named c0..9 except c1 (note the escaping)
-    kubectl allctx '/^c[0-9]/' ^c1	 -- get nodes
+    kubectl foreach '/^c[0-9]/' ^c1	 -- get nodes
 
     # get nodes on all contexts that has "prod" but not "foo"
-    kubectl allctx /prod/ ^/foo/ -- get nodes
+    kubectl foreach /prod/ ^/foo/ -- get nodes
 
     # use 'kubectl tail' plugin to follow logs of pods in contexts named *test*
-    kubectl allctx -I _ /test/ -- tail --context=_ -l app=foo`+"\n")
+    kubectl foreach -I _ /test/ -- tail --context=_ -l app=foo`+"\n")
 	os.Exit(0)
 }
 
