@@ -1,4 +1,4 @@
-module github.com/ahmetb/kubectl-allctx
+module github.com/ahmetb/kubectl-foreach
 
 go 1.18
 

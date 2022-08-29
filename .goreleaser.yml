@@ -2,9 +2,9 @@ before:
   hooks:
   - go mod download
 builds:
-- id: kubectl-allctx
+- id: kubectl-foreach
   main: .
-  binary: kubectl-allctx
+  binary: kubectl-foreach
   env:
   - CGO_ENABLED=0
   goos:
@@ -20,8 +20,8 @@ builds:
 
 archives:
 - builds:
-  - kubectl-allctx
-  # name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  - kubectl-foreach
+  name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
   wrap_in_directory: false
   format: tar.gz
   files:
