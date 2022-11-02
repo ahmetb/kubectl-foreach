@@ -155,16 +155,21 @@ func main() {
 	}
 }
 
-func replaceArgs(args []string, repl string) func(ctx string) []string {
-	return func(ctx string) []string {
+func replaceArgs(args []string, repl string) func(ctx string) ([]string, error) {
+	return func(ctx string) ([]string, error) {
 		if repl == "" {
-			return append([]string{"--context=" + ctx}, args...)
+			return append([]string{"--context=" + ctx}, args...), nil
 		}
 		out := make([]string, len(args))
+		modified := false
 		for i := range args {
 			out[i] = strings.Replace(args[i], repl, ctx, -1)
+			modified = modified || (out[i] != args[i])
 		}
-		return out
+		if !modified {
+			return nil, fmt.Errorf("args did not use context name replacement string %q", repl)
+		}
+		return out, nil
 	}
 }
 
@@ -179,7 +184,7 @@ func kubeContexts(ctx context.Context) ([]string, error) {
 	return strings.Split(strings.TrimSpace(b.String()), "\n"), nil
 }
 
-func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) []string, stdout, stderr io.Writer) error {
+func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) ([]string, error), stdout, stderr io.Writer) error {
 	n := len(kubeCtxs)
 	if *workers > 0 {
 		n = *workers
@@ -202,7 +207,11 @@ func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) []stri
 			prefix := []byte(leftPad(colFn(kctx), len(kctx)) + " | ")
 			wo := &prefixingWriter{prefix: prefix, w: stdout}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
-			return run(ctx, argMaker(kctx), wo, we)
+			args, err := argMaker(kctx)
+			if err != nil {
+				return err
+			}
+			return run(ctx, args, wo, we)
 		})
 	}
 	return wg.Wait()

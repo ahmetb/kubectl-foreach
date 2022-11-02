@@ -83,16 +83,28 @@ func (b blockingReader) Read(p []byte) (n int, err error) {
 }
 
 func Test_replaceArgs(t *testing.T) {
-	t.Run("no replace", func(t *testing.T) {
-		assert.Equal(t, []string{"--context=ctx"}, replaceArgs(nil, "")("ctx"))
-		assert.Equal(t, []string{"--context=ctx", "arg1", "arg2"}, replaceArgs([]string{"arg1", "arg2"}, "")("ctx"))
+	t.Run("no replacement requested", func(t *testing.T) {
+		v, err := replaceArgs(nil, "")("ctx")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"--context=ctx"}, v)
+
+		v, err = replaceArgs([]string{"arg1", "arg2"}, "")("ctx")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"--context=ctx", "arg1", "arg2"}, v)
 	})
-	t.Run("no hits", func(t *testing.T) {
-		assert.Equal(t, []string{}, replaceArgs([]string{}, "X")("ctx"))
-		assert.Equal(t, []string{"arg1"}, replaceArgs([]string{"arg1"}, "X")("ctx"))
+	t.Run("no replacement happened", func(t *testing.T) {
+		_, err := replaceArgs([]string{}, "X")("ctx")
+		assert.Error(t, err)
+		_, err = replaceArgs([]string{"--arg1", "--arg2"}, "X")("ctx")
+		assert.Error(t, err)
 	})
-	t.Run("hits", func(t *testing.T) {
-		assert.Equal(t, []string{"a", "ctxctx", "actx"}, replaceArgs([]string{"a", "XX", "aX"}, "X")("ctx"))
-		assert.Equal(t, []string{"a", "ctx", "aX"}, replaceArgs([]string{"a", "XX", "aX"}, "XX")("ctx"))
+	t.Run("replacement hits", func(t *testing.T) {
+		v, err := replaceArgs([]string{"a", "XX", "aX"}, "X")("ctx")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "ctxctx", "actx"}, v)
+
+		v, err = replaceArgs([]string{"a", "XX", "aX"}, "XX")("ctx")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "ctx", "aX"}, v)
 	})
 }
