@@ -37,9 +37,8 @@ const (
 )
 
 var (
-	chalk = gchalk.Stderr
-	gray  = chalk.Gray
-	red   = chalk.Red
+	gray = gchalk.Stderr.Gray
+	red  = gchalk.Stderr.Red
 
 	fl      = flag.NewFlagSet("kubectl foreach", flag.ContinueOnError)
 	repl    = fl.String("I", "", "string to replace in cmd args with context name (like xargs -I)")

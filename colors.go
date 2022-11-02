@@ -14,6 +14,10 @@
 
 package main
 
+import "github.com/jwalton/gchalk"
+
+var chalk = gchalk.New()
+
 var colors = []func(string, ...interface{}) string{
 	// foreground only
 	chalk.WithRed().Sprintf,
