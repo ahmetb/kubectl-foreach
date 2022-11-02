@@ -72,3 +72,21 @@ func (s *prefixingWriter) Write(p []byte) (int, error) {
 	}
 	return n, nil
 }
+
+func (s *prefixingWriter) Close() error {
+	// TODO track double-closing?
+
+	if s.buf.Len() == 0 {
+		return nil
+	}
+	_, err := s.w.Write(s.buf.Bytes())
+	if err != nil {
+		return err
+	}
+	if (s.buf.Bytes())[s.buf.Len()-1] == '\n' {
+		return nil
+	}
+	// cmd ended without trailing \n, add so that prefixed printing is not malformed
+	_, err = s.w.Write([]byte{'\n'})
+	return err
+}

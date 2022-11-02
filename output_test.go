@@ -65,3 +65,18 @@ p: beof
 `, // expected trailing newline
 		b.String())
 }
+
+func Test_prefixingWriter_flushing(t *testing.T) {
+	var b bytes.Buffer
+	pw := &prefixingWriter{prefix: []byte{'x'}, w: &b}
+
+	_, err := pw.Write([]byte("line1\n"))
+	assert.NoError(t, err)
+	assert.Equal(t, "xline1\n", b.String())
+
+	// incomplete line
+	_, err = pw.Write([]byte("line2"))
+	assert.NoError(t, err)
+	assert.NoError(t, pw.Close()) // close to flush
+	assert.Equal(t, "xline1\nxline2\n", b.String())
+}

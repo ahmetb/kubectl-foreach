@@ -218,7 +218,16 @@ func maxLen(s []string) int {
 	return max
 }
 
-func run(ctx context.Context, args []string, stdout, stderr io.Writer) (err error) {
+func run(ctx context.Context, args []string, stdout, stderr io.WriteCloser) (err error) {
+	defer func() {
+		// flush underlying writer (prefixWriter) by closing in case last output does not terminate with newline
+		if err := stdout.Close(); err != nil {
+			log.Printf("WARN: failed to close stdout: %v", err)
+		}
+		if err := stderr.Close(); err != nil {
+			log.Printf("WARN: failed to close stdout: %v", err)
+		}
+	}()
 	cmd := exec.CommandContext(ctx, "kubectl", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
