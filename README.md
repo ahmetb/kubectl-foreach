@@ -92,16 +92,21 @@ kubectl foreach -c 3 /^gke-/
 
 ## Install
 
-Currently, the `go` command is the only way to install
-(make sure `~/go/bin` is in your `PATH`):
+Use [Krew](https://krew.sigs.k8s.io/) kubectl plugin manager:
 
+```shell
+kubectl krew install foreach
+```
+
+You can also build from source but you won't receive new version updates:
 ```
 go install github.com/ahmetb/kubectl-foreach@latest
 ```
 
 ## Remarks
 
-**Do not use this tool programmatically:**
+**Do not use this tool programmatically yet:**
+
 This tool is not intended for deploying workloads to clusters, or using
 programmatically. Therefore, it does not provide a structured output format or
 ordered printing that is meant to be parsed by or piped to other programs (maybe
