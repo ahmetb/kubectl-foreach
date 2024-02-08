@@ -108,3 +108,21 @@ func Test_replaceArgs(t *testing.T) {
 		assert.Equal(t, []string{"a", "ctx", "aX"}, v)
 	})
 }
+
+func Test_findKubeContextArg(t *testing.T) {
+	t.Run("no context", func(t *testing.T) {
+		v, ok := findKubeContextArg([]string{"--arg1", "--arg2"})
+		assert.False(t, ok)
+		assert.Empty(t, v)
+	})
+	t.Run("context", func(t *testing.T) {
+		v, ok := findKubeContextArg([]string{"--context=ctx", "--arg1", "--arg2"})
+		assert.True(t, ok)
+		assert.Equal(t, "--context=ctx", v)
+	})
+	t.Run("context", func(t *testing.T) {
+		v, ok := findKubeContextArg([]string{"--context", "ctx", "--arg1", "--arg2"})
+		assert.True(t, ok)
+		assert.Equal(t, "--context", v)
+	})
+}

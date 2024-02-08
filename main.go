@@ -61,16 +61,16 @@ Patterns can be used to match context names from kubeconfig:
     /PATTERN/: matches context with regular expression
         ^NAME: remove context with exact name from the matched results
    ^/PATTERN/: remove contexts matching the regular expression from the results
-    
+
 Options:
     -c=NUM     Limit parallel executions (default: 0, unlimited)
     -I=VAL     Replace VAL occurring in KUBECTL_ARGS with context name
-    -q         Disable and accept confirmation prompts ($KUBECTL_FOREACH_DISABLE_PROMPTS) 
+    -q         Disable and accept confirmation prompts ($KUBECTL_FOREACH_DISABLE_PROMPTS)
     -h/--help  Print help
 
 Examples:
     # get nodes on contexts named a b c
-    kubectl foreach a b c -- get nodes 
+    kubectl foreach a b c -- get nodes
 
     # get nodes on all contexts named c0..9 except c1 (note the escaping)
     kubectl foreach '/^c[0-9]/' ^c1	 -- get nodes
@@ -129,6 +129,12 @@ func main() {
 		filters = append(filters, f)
 	}
 
+	// heuristic: if --context is already in kubectl args (and no -I flag), user is likely making a mistake
+	if ctxArg, found := findKubeContextArg(kubectlArgs); found && *repl == "" {
+		printErrAndExit(fmt.Sprintf(
+			"kubectl args already contain %q flag, this is likely a mistake (otherwise the program would not query different contexts)", ctxArg))
+	}
+
 	ctxMatches := matchContexts(ctxs, filters)
 
 	if len(ctxMatches) == 0 {
@@ -145,6 +151,8 @@ func main() {
 			printErrAndExit(err.Error())
 		}
 	}
+
+	// alert if there's already --context in kubectl args and no -I flag specified
 
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
@@ -291,4 +299,13 @@ func trimSuffix(a []string, suffix []string) []string {
 		}
 	}
 	return a[:len(a)-len(suffix)]
+}
+
+func findKubeContextArg(argv []string) (string, bool) {
+	for _, arg := range argv {
+		if strings.HasPrefix(arg, "--context") {
+			return arg, true
+		}
+	}
+	return "", false
 }
