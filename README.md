@@ -1,7 +1,8 @@
 # kubectl foreach
 
-Run a `kubectl` command in one or more contexts (clusters) in parallel
-(similar to GNU parallel/xargs).
+Run a `kubectl` command in one or more contexts (clusters) in parallel (similar
+to GNU parallel/xargs). Useful for querying multiple clusters at once or making
+changes against the cluster fleet.
 
 ## Usage
 
@@ -15,7 +16,7 @@ Patterns can be used to match context names from kubeconfig:
     /PATTERN/: matches context with regular expression
         ^NAME: remove context with exact name from the matched results
    ^/PATTERN/: remove contexts matching the regular expression from the results
-    
+
 Options:
     -c=NUM     Limit parallel executions (default: 0, unlimited)
     -I=VAL     Replace VAL occurring in KUBECTL_ARGS with context name
@@ -103,11 +104,19 @@ You can also build from source but you won't receive new version updates:
 go install github.com/ahmetb/kubectl-foreach@latest
 ```
 
-## Remarks
+## Remarks/FAQ
 
-**Do not use this tool programmatically yet:**
+**Do not use this tool programmatically:**
 
 This tool is not intended for deploying workloads to clusters, or using
 programmatically. Therefore, it does not provide a structured output format or
 ordered printing that is meant to be parsed by or piped to other programs (maybe
 except for `grep`).
+
+**error: pipe: too many open files:**
+
+macOS default open files limit seems to be 256. kubectl command opens files
+and sockets that easily exhausts this number while running the command against
+50+ clusters. Run `ulimit -n 2048` to bump this limit to a higher number and
+you should not be seeing the error anymore.
+
