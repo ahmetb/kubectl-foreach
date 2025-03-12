@@ -1,6 +1,6 @@
 module github.com/ahmetb/kubectl-foreach
 
-go 1.18
+go 1.24
 
 require (
 	github.com/jwalton/gchalk v1.3.0
