@@ -21,7 +21,7 @@ jobs:
     - name: Run unit tests
       run: go test -v -race ./...
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v3
+      uses: goreleaser/goreleaser-action@v6
       with:
         distribution: goreleaser
         version: latest
