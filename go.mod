@@ -1,11 +1,11 @@
 module github.com/ahmetb/kubectl-foreach
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/jwalton/gchalk v1.3.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 )
 
 require (
