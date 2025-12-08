@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/jwalton/gchalk v1.3.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.19.0
 )
 
 require (
