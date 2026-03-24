@@ -157,7 +157,8 @@ func main() {
 	syncOut := &synchronizedWriter{Writer: os.Stdout}
 	syncErr := &synchronizedWriter{Writer: os.Stderr}
 
-	err = runAll(ctx, ctxMatches, replaceArgs(kubectlArgs, *repl), syncOut, syncErr)
+	outputFormat := detectOutputFormat(kubectlArgs)
+	err = runAll(ctx, ctxMatches, replaceArgs(kubectlArgs, *repl), syncOut, syncErr, outputFormat)
 	if err != nil {
 		printErrAndExit(err.Error())
 	}
@@ -192,7 +193,7 @@ func kubeContexts(ctx context.Context) ([]string, error) {
 	return strings.Split(strings.TrimSpace(b.String()), "\n"), nil
 }
 
-func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) ([]string, error), stdout, stderr io.Writer) error {
+func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) ([]string, error), stdout, stderr io.Writer, outputFormat string) error {
 	n := len(kubeCtxs)
 	if *workers > 0 {
 		n = *workers
@@ -213,7 +214,12 @@ func runAll(ctx context.Context, kubeCtxs []string, argMaker func(string) ([]str
 		colFn := colors[i%len(colors)]
 		wg.Go(func() error {
 			prefix := []byte(leftPad(colFn(kctx), len(kctx)) + " | ")
-			wo := &prefixingWriter{prefix: prefix, w: stdout}
+			var wo io.WriteCloser
+			if outputFormat != "" {
+				wo = &structuredWriter{format: outputFormat, contextName: kctx, w: stdout}
+			} else {
+				wo = &prefixingWriter{prefix: prefix, w: stdout}
+			}
 			we := &prefixingWriter{prefix: prefix, w: stderr}
 			args, err := argMaker(kctx)
 			if err != nil {
