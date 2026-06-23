@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.24'
+        go-version: '1.25'
     - name: Ensure gofmt
       run: test -z "$(gofmt -s -d .)"
     - name: Ensure go.mod is already tidied
