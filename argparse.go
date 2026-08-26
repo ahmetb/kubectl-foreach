@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 // separateArgs parses command-line arguments (excluding argv[0]) meant for the tool and kubectl
@@ -40,4 +41,29 @@ func separateArgs(argv []string) (toolArgs []string, kubectlArgs []string, err e
 		return
 	}
 	return
+}
+
+// detectOutputFormat scans kubectl args for -o/--output flag with json or yaml value.
+// Returns "json", "yaml", or "" if no structured output format is detected.
+func detectOutputFormat(kubectlArgs []string) string {
+	for i, arg := range kubectlArgs {
+		// -ojson, -oyaml (short flag, no separator)
+		if arg == "-ojson" || arg == "-o=json" || arg == "--output=json" {
+			return "json"
+		}
+		if arg == "-oyaml" || arg == "-o=yaml" || arg == "--output=yaml" {
+			return "yaml"
+		}
+		// -o json, -o yaml, --output json, --output yaml (value in next arg)
+		if (arg == "-o" || arg == "--output") && i+1 < len(kubectlArgs) {
+			v := strings.ToLower(kubectlArgs[i+1])
+			if v == "json" {
+				return "json"
+			}
+			if v == "yaml" {
+				return "yaml"
+			}
+		}
+	}
+	return ""
 }

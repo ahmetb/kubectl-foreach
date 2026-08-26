@@ -56,3 +56,32 @@ func TestSeparateArgs(t *testing.T) {
 		assert.Equal(t, []string{"foo", "--", "--bar"}, r)
 	})
 }
+
+func Test_detectOutputFormat(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"empty args", nil, ""},
+		{"no output flag", []string{"get", "pods"}, ""},
+		{"-ojson", []string{"get", "pods", "-ojson"}, "json"},
+		{"-oyaml", []string{"get", "pods", "-oyaml"}, "yaml"},
+		{"-o=json", []string{"get", "pods", "-o=json"}, "json"},
+		{"-o=yaml", []string{"get", "pods", "-o=yaml"}, "yaml"},
+		{"-o json", []string{"get", "pods", "-o", "json"}, "json"},
+		{"-o yaml", []string{"get", "pods", "-o", "yaml"}, "yaml"},
+		{"--output=json", []string{"get", "pods", "--output=json"}, "json"},
+		{"--output=yaml", []string{"get", "pods", "--output=yaml"}, "yaml"},
+		{"--output json", []string{"get", "pods", "--output", "json"}, "json"},
+		{"--output yaml", []string{"get", "pods", "--output", "yaml"}, "yaml"},
+		{"other format ignored", []string{"get", "pods", "-o", "wide"}, ""},
+		{"jsonpath ignored", []string{"get", "pods", "-o=jsonpath={.items}"}, ""},
+		{"-o at end without value", []string{"get", "pods", "-o"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, detectOutputFormat(tt.args))
+		})
+	}
+}
